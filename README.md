@@ -10,7 +10,7 @@ Este GitHub Action permite desplegar una aplicación .NET ya publicada usando **
 
 | Nombre          | Descripción                                          | Requerido |
 |-----------------|------------------------------------------------------|-----------|
-| `publish-path`  | Ruta absoluta al directorio de publicación (`publish`) | ✅        |
+| `publish-path`  | Ruta relativa al directorio de publicación (`publish`) | ✅        |
 | `site-name`     | Nombre de la aplicación IIS en el servidor remoto     | ✅        |
 | `server`        | Dirección del servidor (ComputerName para MSDeploy)   | ✅        |
 | `username`      | Usuario con permisos de publicación                   | ✅        |
@@ -24,7 +24,7 @@ Este GitHub Action permite desplegar una aplicación .NET ya publicada usando **
 - name: Deploy with MSDeploy
   uses: HonyakuVerse/msdeploy-action@v1
   with:
-    publish-path: '${{ github.workspace }}\\publish'
+    publish-path: 'publish'
     site-name: '${{ vars.WEB_DEPLOY_SITE }}'
     server: '${{ vars.WEB_DEPLOY_SERVER }}'
     username: '${{ vars.WEB_DEPLOY_USER }}'
