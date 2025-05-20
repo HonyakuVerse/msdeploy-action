@@ -1,0 +1,64 @@
+name: MSDeploy Deploy
+description: "Deploy .NET app using Web Deploy (msdeploy.exe) with manifest and parameters"
+
+inputs:
+  publish-path:
+    description: "Path to the publish folder"
+    required: true
+  site-name:
+    description: "IIS site name on destination server"
+    required: true
+  server:
+    description: "MSDeploy server endpoint (ComputerName)"
+    required: true
+  username:
+    description: "Username for MSDeploy authentication"
+    required: true
+  password:
+    description: "Password or token for MSDeploy authentication"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - shell: pwsh
+      run: |
+        $publishPath = "${{ github.workspace }}\${{ inputs.publish-path }}\"
+        $escapedPublishPath = $publishPath -replace '\\', '\\'
+
+        # Crear manifest.xml
+        $manifestContent = '<?xml version="1.0" encoding="utf-8"?>
+          <sitemanifest>
+            <IisApp path="${{ github.workspace }}\${{ inputs.publish-path }}\" />
+          </sitemanifest>
+        '
+        $manifestContent | Set-Content -Path "manifest.xml" -Encoding UTF8
+        
+        # Crear parameters.xml
+        $parametersContent = '<?xml version="1.0" encoding="utf-8"?>'
+        $parametersContent += @"
+          <parameters>
+            <parameter name="IIS Web Application Name" description="" value="${{ inputs.site-name }}" tags="IisApp">
+              <parameterEntry kind="ProviderPath" scope="IisApp" match="^$escapedPublishPath$" />
+            </parameter>
+          </parameters>
+        "@
+        $parametersContent | Set-Content -Path "parameters.xml" -Encoding UTF8
+
+    - shell: pwsh
+      run: |
+        $msdeploy = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+        $source = "-source:manifest='${{ github.workspace }}\manifest.xml'"
+        $dest = "-dest:auto,ComputerName=${{ inputs.server }},UserName=${{ inputs.username }},Password=${{ inputs.password }},AuthType=Basic"
+        
+        & $msdeploy $source $dest `
+          -verb:sync `
+          -allowUntrusted `
+          -enableRule:AppOffline `
+          -setParamFile:"${{ github.workspace }}\parameters.xml" `
+          -disableLink:AppPoolExtension `
+          -disableLink:ContentExtension `
+          -disableLink:CertificateExtension `
+          -retryAttempts=10 `
+          -retryInterval=2000 `
+          -useChecksum
